@@ -29,12 +29,15 @@ import java.util.List;
 
 import androidx.core.view.MenuItemCompat;
 import ch.ethz.ikg.treasurehunt.model.Treasure;
+import com.esri.arcgisruntime.geometry.*;
 
 /**
  * The TreasureHunt activity is the main screen of the treasure hunt application. It features a
  * spinner to select the current treasure, a compass that shows the direction to this treasure,
  * and several UI elements that indicate the player's speed, the current temperature, the coins
  * a player already has collected, etc.
+ * ->By clicking on the Android back button to quit the app, the AskShare activity starts (Social sharing options).
+ * ->By clicking on the "SEE MAP" button, the ActivityMap activity starts (Arc GIS SDK to show results).
  */
 public class TreasureHunt extends AppCompatActivity
         implements LocationListener, SensorEventListener {
@@ -46,6 +49,7 @@ public class TreasureHunt extends AppCompatActivity
     private List<Treasure> treasures;
     private Treasure currentTreasure;
 
+    private Location previousLocation;
     // Variables that store current sensor readings and derived game values.
     private Location currentLocation;
     private float[] currentAcceleration;
@@ -95,7 +99,9 @@ public class TreasureHunt extends AppCompatActivity
         });
 
 
-
+        //Set previous location
+        previousLocation.setLongitude(0);
+        previousLocation.setLatitude(0);
 
         // Set up all manager references.
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
@@ -340,6 +346,17 @@ public class TreasureHunt extends AppCompatActivity
     public void onLocationChanged(Location location) {
         currentLocation = location;
         updateGameAndUI();
+
+
+        // Create a builder, set the Spatial Reference
+        PolylineBuilder polylineBuilder = new PolylineBuilder(SpatialReferences.getWgs84());
+
+
+        Part firstPart = new Part(SpatialReferences.getWgs84());
+        firstPart.add(new LineSegment(previousLocation.getLongitude(), previousLocation.getLatitude(), currentLocation.getLongitude(), currentLocation.getLatitude()));  // A LineSegment (0,0) -> (0,7)
+        polylineBuilder.addPart(firstPart);
+        Polyline polyline = polylineBuilder.toGeometry(); // Convert the current state of the builder to a Polyline.
+        previousLocation = location;
     }
 
     @Override
