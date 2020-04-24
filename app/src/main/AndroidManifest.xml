@@ -25,6 +25,18 @@
         </intent-filter>
         </activity>
 
+
+        <activity android:name=".AskShare"
+                  android:theme="@style/AppTheme.NoActionBar" >
+            <intent-filter>
+                <category android:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.SEND"/>
+                <data android:mimeType="text/plain"/>
+            </intent-filter>
+
+        </activity>
+
+
         <activity android:name=".TreasureHunt"
                   android:theme="@style/AppTheme.NoActionBar" >
             <intent-filter>

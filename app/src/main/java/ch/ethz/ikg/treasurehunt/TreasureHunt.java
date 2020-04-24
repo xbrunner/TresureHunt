@@ -96,6 +96,7 @@ public class TreasureHunt extends AppCompatActivity
 
 
 
+
         // Set up all manager references.
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -152,6 +153,10 @@ public class TreasureHunt extends AppCompatActivity
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        Intent Intent = new Intent(this, AskShare.class);
+        Intent.putExtra("userId", userId);
+        Intent.putExtra("currentCoins", currentCoins);
+        startActivityForResult(Intent, 0);
 
 //        //Generate an unique User ID with the Android ID.
 //        TelephonyManager tm = (TelephonyManager) this.getSystemService(Context.TELEPHONY_SERVICE);
@@ -159,13 +164,7 @@ public class TreasureHunt extends AppCompatActivity
 //        Toast.makeText(getApplicationContext(), userId, Toast.LENGTH_SHORT).show();
 
 
-        Intent sendIntent = new Intent();
-        sendIntent.setAction(Intent.ACTION_SEND);
-        sendIntent.putExtra(Intent.EXTRA_TEXT, "My score on TreasureGame is: " + currentCoins + " Coins. My user ID is: " + userId);
-        sendIntent.setType("text/plain");
 
-
-        startActivity(sendIntent);
         //Toast.makeText(getApplicationContext(), "onDestroy", Toast.LENGTH_SHORT).show();
 
 
