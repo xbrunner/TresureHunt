@@ -1,8 +1,6 @@
 package ch.ethz.ikg.treasurehunt;
 
 import android.Manifest;
-import android.accounts.Account;
-import android.accounts.AccountManager;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -16,28 +14,30 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
+import android.util.Log;
 import android.widget.*;
 import androidx.core.app.ActivityCompat;
 import androidx.appcompat.app.AppCompatActivity;
 import android.view.View;
 import android.content.Intent;
+import java.util.concurrent.ExecutionException;
 
 
-import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.function.IntToDoubleFunction;
+import android.widget.Toast;
 
-import androidx.core.view.MenuItemCompat;
 import ch.ethz.ikg.treasurehunt.model.Treasure;
 import com.esri.arcgisruntime.concurrent.ListenableFuture;
 import com.esri.arcgisruntime.data.Feature;
 import com.esri.arcgisruntime.data.FeatureEditResult;
 import com.esri.arcgisruntime.data.ServiceFeatureTable;
 import com.esri.arcgisruntime.geometry.*;
+import com.esri.arcgisruntime.geometry.Point;
+
 
 /**
  * The TreasureHunt activity is the main screen of the treasure hunt application. It features a
@@ -49,6 +49,8 @@ import com.esri.arcgisruntime.geometry.*;
  */
 public class TreasureHunt extends AppCompatActivity
         implements LocationListener, SensorEventListener {
+
+    private static final String TAG = TreasureHunt.class.getSimpleName();
 
     // Some application constants.
     private static final double COLLECT_COIN_DISTANCE = 10.0;
@@ -89,8 +91,9 @@ public class TreasureHunt extends AppCompatActivity
     private Spinner selectTreasure;
 
     // Set Feature Layers URL.
-    //ServiceFeatureTable trackFeature = new ServiceFeatureTable("https://services1.arcgis.com/i9MtZ1vtgD3gTnyL/arcgis/rest/services/track/FeatureServer/0");
-    ServiceFeatureTable treasureFeature = new ServiceFeatureTable("https://services1.arcgis.com/i9MtZ1vtgD3gTnyL/arcgis/rest/services/treassure/FeatureServer/0");
+    private ServiceFeatureTable treasureFeature;
+    private ServiceFeatureTable trackFeature;
+
 
 
 
@@ -115,7 +118,9 @@ public class TreasureHunt extends AppCompatActivity
         });
 
 
-
+        // Create service feature table from URL.
+        trackFeature = new ServiceFeatureTable("https://services1.arcgis.com/i9MtZ1vtgD3gTnyL/arcgis/rest/services/track/FeatureServer/0");
+        treasureFeature = new ServiceFeatureTable("https://services1.arcgis.com/cgb2c0bypateGgm9/ArcGIS/rest/services/Treasure_Layer/FeatureServer/0");
 
         // Set up all manager references.
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
@@ -301,12 +306,16 @@ public class TreasureHunt extends AppCompatActivity
             treasures.remove(currentTreasure);
             Toast.makeText(this, getString(R.string.congrats_collected,
                     currentTreasure.getName(), coinAward), Toast.LENGTH_LONG).show();
+
+            //Add Feature to map
+            //Point foundTreasurePoint = new Point( currentLocation.getLongitude(),currentLocation.getLatitude());
+            Point foundTreasurePoint = new Point( 8.507309,47.408288, 0,  SpatialReferences.getWgs84());
+            //addFeature(foundTreasurePoint, treasureFeature);
+
             currentTreasure = null;
             updateSpinner();
 
-            //Add Feature to map
-            Point foundTreasurePoint = new Point( currentLocation.getLongitude(),currentLocation.getLatitude(), SpatialReferences.getWgs84());
-            //addFeature(foundTreasurePoint, treasureFeature);
+
         }
     }
 
@@ -368,16 +377,28 @@ public class TreasureHunt extends AppCompatActivity
     private void addFeature(Point mapPoint, final ServiceFeatureTable featureTable) {
 
         // create default attributes for the feature
-        HashMap<String, Object> attributes = new HashMap<>();
+        Map<String, Object> attributes = new HashMap<>();
         attributes.put("user_id", userId);
         attributes.put("track_id", trackId);
-        attributes.put("treasure_name", currentTreasure.getName());
+        attributes.put("timestamp", "2018-05-29 13:50:41.493");
         attributes.put("collected_coins", Double.valueOf(currentCoins));
-
+        attributes.put("treasure_name", currentTreasure.getName());
+        Boolean canAdd = featureTable.canAdd();
         // creates a new feature using default attributes and point
-        Feature feature = featureTable.createFeature(attributes, mapPoint);
+        Feature feature = featureTable.createFeature(attributes, new Point( 8.507309,47.408288));
         // Add the new feature to the feature table and to server
-        final ListenableFuture<Void> listenableFuture = featureTable.addFeatureAsync(feature);
+        // check if feature can be added to feature table
+        if (featureTable.canAdd()) {
+            // add the new feature to the feature table and to server
+            featureTable.addFeatureAsync(feature).addDoneListener(() -> applyEdits(featureTable));
+        } else {
+            runOnUiThread(() -> logToUser(true, "Error cannot add to feature table"));
+        }
+    }
+
+
+
+/*        final ListenableFuture<Void> listenableFuture = featureTable.addFeatureAsync(feature);
         listenableFuture.addDoneListener(new Runnable() {
             @Override
             public void run() {
@@ -402,9 +423,44 @@ public class TreasureHunt extends AppCompatActivity
 
                 }
             }
-        });
+        });*/
 
+//    }
+
+    private void applyEdits(ServiceFeatureTable featureTable) {
+
+        // apply the changes to the server
+        final ListenableFuture<List<FeatureEditResult>> editResult = featureTable.applyEditsAsync();
+        editResult.addDoneListener(() -> {
+            try {
+                List<FeatureEditResult> editResults = editResult.get();
+                // check if the server edit was successful
+                if (editResults != null && !editResults.isEmpty()) {
+                    if (!editResults.get(0).hasCompletedWithErrors()) {
+                        runOnUiThread(() -> logToUser(false, "New Layer added"));
+                    } else {
+                        throw editResults.get(0).getError();
+                    }
+                }
+            } catch (InterruptedException | ExecutionException e) {
+                runOnUiThread(() -> logToUser(true, "Error applying edits"));
+            }
+        });
     }
+
+
+    private void logToUser(boolean isError, String message) {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+        if (isError) {
+            Log.e(TAG, message);
+        } else {
+            Log.d(TAG, message);
+        }
+    }
+
+
+
+
 
     @Override
     public void onSensorChanged(SensorEvent event) {
