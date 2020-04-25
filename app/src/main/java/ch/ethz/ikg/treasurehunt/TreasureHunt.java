@@ -25,10 +25,18 @@ import android.content.Intent;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.function.IntToDoubleFunction;
 
 import androidx.core.view.MenuItemCompat;
 import ch.ethz.ikg.treasurehunt.model.Treasure;
+import com.esri.arcgisruntime.concurrent.ListenableFuture;
+import com.esri.arcgisruntime.data.Feature;
+import com.esri.arcgisruntime.data.FeatureEditResult;
+import com.esri.arcgisruntime.data.ServiceFeatureTable;
 import com.esri.arcgisruntime.geometry.*;
 
 /**
@@ -49,16 +57,20 @@ public class TreasureHunt extends AppCompatActivity
     private List<Treasure> treasures;
     private Treasure currentTreasure;
 
-    private Location previousLocation;
+
     // Variables that store current sensor readings and derived game values.
     private Location currentLocation;
+    private Location previousLocation = currentLocation;
     private float[] currentAcceleration;
     private float[] currentCompassReading;
     private boolean temperatureAvailable = false;
     private double currentTemperature = 20.0;
     private double currentHeading;
     private int currentCoins = 0;
-    private int userId = 23;
+    private int userId = 23; // User: Xavier Brunner
+    private int trackId = 0;
+
+
 
     // Button.
     private Button myButton;
@@ -75,6 +87,10 @@ public class TreasureHunt extends AppCompatActivity
     private TextView txtDistance;
     private ImageView imgCompass;
     private Spinner selectTreasure;
+
+    // Set Feature Layers URL.
+    //ServiceFeatureTable trackFeature = new ServiceFeatureTable("https://services1.arcgis.com/i9MtZ1vtgD3gTnyL/arcgis/rest/services/track/FeatureServer/0");
+    ServiceFeatureTable treasureFeature = new ServiceFeatureTable("https://services1.arcgis.com/i9MtZ1vtgD3gTnyL/arcgis/rest/services/treassure/FeatureServer/0");
 
 
 
@@ -99,9 +115,7 @@ public class TreasureHunt extends AppCompatActivity
         });
 
 
-        //Set previous location
-        previousLocation.setLongitude(0);
-        previousLocation.setLatitude(0);
+
 
         // Set up all manager references.
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
@@ -173,19 +187,6 @@ public class TreasureHunt extends AppCompatActivity
 
         //Toast.makeText(getApplicationContext(), "onDestroy", Toast.LENGTH_SHORT).show();
 
-
-
-
-
-
-//        Intent intent = new Intent(this, ArcGISMap.class);
-//        intent.setAction(Intent.ACTION_SEND);
-
-//        intent.setType("text/plain");
-//        //intent.putExtra(Intent.EXTRA_TEXT, URL_TO_SHARE);
-//        intent.putExtra("currentCoins", currentCoins);
-//        intent.putExtra("userId", userId);
-//        startActivity(Intent.createChooser(intent, "Share"));
 
     }
 
@@ -302,6 +303,10 @@ public class TreasureHunt extends AppCompatActivity
                     currentTreasure.getName(), coinAward), Toast.LENGTH_LONG).show();
             currentTreasure = null;
             updateSpinner();
+
+            //Add Feature to map
+            Point foundTreasurePoint = new Point( currentLocation.getLongitude(),currentLocation.getLatitude(), SpatialReferences.getWgs84());
+            //addFeature(foundTreasurePoint, treasureFeature);
         }
     }
 
@@ -352,11 +357,53 @@ public class TreasureHunt extends AppCompatActivity
         PolylineBuilder polylineBuilder = new PolylineBuilder(SpatialReferences.getWgs84());
 
 
-        Part firstPart = new Part(SpatialReferences.getWgs84());
-        firstPart.add(new LineSegment(previousLocation.getLongitude(), previousLocation.getLatitude(), currentLocation.getLongitude(), currentLocation.getLatitude()));  // A LineSegment (0,0) -> (0,7)
-        polylineBuilder.addPart(firstPart);
-        Polyline polyline = polylineBuilder.toGeometry(); // Convert the current state of the builder to a Polyline.
-        previousLocation = location;
+//        Part firstPart = new Part(SpatialReferences.getWgs84());
+//        firstPart.add(new LineSegment(previousLocation.getLongitude(), previousLocation.getLatitude(), currentLocation.getLongitude(), currentLocation.getLatitude()));  // A LineSegment (0,0) -> (0,7)
+//        polylineBuilder.addPart(firstPart);
+//        Polyline polyline = polylineBuilder.toGeometry(); // Convert the current state of the builder to a Polyline.
+//        previousLocation = location;
+
+    }
+
+    private void addFeature(Point mapPoint, final ServiceFeatureTable featureTable) {
+
+        // create default attributes for the feature
+        HashMap<String, Object> attributes = new HashMap<>();
+        attributes.put("user_id", userId);
+        attributes.put("track_id", trackId);
+        attributes.put("treasure_name", currentTreasure.getName());
+        attributes.put("collected_coins", Double.valueOf(currentCoins));
+
+        // creates a new feature using default attributes and point
+        Feature feature = featureTable.createFeature(attributes, mapPoint);
+        // Add the new feature to the feature table and to server
+        final ListenableFuture<Void> listenableFuture = featureTable.addFeatureAsync(feature);
+        listenableFuture.addDoneListener(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    listenableFuture.get();
+                    final ListenableFuture<List<FeatureEditResult>> applyEditsFuture = featureTable.applyEditsAsync();
+                    applyEditsFuture.addDoneListener(new Runnable() {
+                        @Override
+                        public void run() {
+                            try{
+                                final List<FeatureEditResult> featureEditResults = applyEditsFuture.get();
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            } catch (ExecutionException e) {
+                                e.printStackTrace();
+                            }
+
+                        }
+                    });
+                }
+                catch(Exception ex){
+
+                }
+            }
+        });
+
     }
 
     @Override
@@ -398,6 +445,8 @@ public class TreasureHunt extends AppCompatActivity
 
         updateGameAndUI();
     }
+
+
 
     // Empty overrides. ============================================================================
     @Override

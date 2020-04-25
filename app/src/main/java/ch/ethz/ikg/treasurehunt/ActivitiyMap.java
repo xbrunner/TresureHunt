@@ -53,10 +53,10 @@ public class ActivitiyMap extends AppCompatActivity {
         ArcGISTiledLayer layer = new ArcGISTiledLayer("http://services.arcgisonline.com/arcgis/rest/services/DARK_GRAY_CANVAS_VECTOR/MapServer");
         map.getOperationalLayers().add(layer);
 
-        // Add Feature Layer
-//        ServiceFeatureTable table = new ServiceFeatureTable("http://services1.arcgis.com/i9MtZ1vtgD3gTnyL/arcgis/rest/services/buildings5/FeatureServer/0");
-//        FeatureLayer featureLayer = new FeatureLayer(table);
-//        map.getOperationalLayers().add(featureLayer);
+        // Add track Feature Layer
+        ServiceFeatureTable track = new ServiceFeatureTable("https://services1.arcgis.com/i9MtZ1vtgD3gTnyL/arcgis/rest/services/treassure/FeatureServer/0");
+        FeatureLayer featureLayer = new FeatureLayer(track);
+        map.getOperationalLayers().add(featureLayer);
 
         // Add Graphic Layer
         GraphicsOverlay overlay = new GraphicsOverlay();
