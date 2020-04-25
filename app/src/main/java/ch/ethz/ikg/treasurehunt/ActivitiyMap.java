@@ -9,8 +9,10 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Switch;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SwitchCompat;
 import com.esri.arcgisruntime.concurrent.ListenableFuture;
 import com.esri.arcgisruntime.data.Feature;
 import com.esri.arcgisruntime.data.FeatureQueryResult;
@@ -43,6 +45,11 @@ public class ActivitiyMap extends AppCompatActivity {
 
              private MapView mMapView;
              private Callout mCallout;
+             private SpatialReference SPATIAL_REFERENCE = SpatialReferences.getWgs84();
+
+             // Define Switch and check state.
+             private Switch switchTrackFeature;
+//             private Boolean switchState = switchTrack.isChecked();
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -59,32 +66,53 @@ public class ActivitiyMap extends AppCompatActivity {
         mMapView = findViewById(R.id.mapView);
         ArcGISMap map = new ArcGISMap(Basemap.Type.DARK_GRAY_CANVAS_VECTOR, 47.408367, 8.507640, 16);
 
-        // Adding Baselayer World_Topo_Map
+        // Adding Basemap.
         ArcGISTiledLayer layer = new ArcGISTiledLayer("http://services.arcgisonline.com/arcgis/rest/services/DARK_GRAY_CANVAS_VECTOR/MapServer");
         map.getOperationalLayers().add(layer);
 
-        // Add track Feature Layer
-        ServiceFeatureTable track = new ServiceFeatureTable("https://services1.arcgis.com/i9MtZ1vtgD3gTnyL/arcgis/rest/services/treassure/FeatureServer/0");
-        FeatureLayer featureLayer = new FeatureLayer(track);
-        map.getOperationalLayers().add(featureLayer);
+        // Add treasure Feature Layer.
+        ServiceFeatureTable treasureTable = new ServiceFeatureTable("https://services1.arcgis.com/i9MtZ1vtgD3gTnyL/arcgis/rest/services/treassure/FeatureServer/0");
+        FeatureLayer treasureFeatureLayer = new FeatureLayer(treasureTable);
+        map.getOperationalLayers().add(treasureFeatureLayer);
 
-        // Add Graphic Layer
+        // Add track Feature Layer.
+        ServiceFeatureTable trackTable = new ServiceFeatureTable("https://services1.arcgis.com/i9MtZ1vtgD3gTnyL/arcgis/rest/services/track/FeatureServer/0");
+        FeatureLayer trackFeatureLayer = new FeatureLayer(trackTable);
+
+
+
+        // Add Graphic Layer.
         GraphicsOverlay overlay = new GraphicsOverlay();
         mMapView.getGraphicsOverlays().add(overlay);
 
 
-        SpatialReference SPATIAL_REFERENCE = SpatialReferences.getWgs84();
-        Point geometry1 = new Point(8.507847,47.408992,  SPATIAL_REFERENCE);  // x : lng, y : lat
-        SimpleMarkerSymbol s = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CROSS, Color.BLUE, 10);
-        Graphic g1 = new Graphic(geometry1, s);
-        overlay.getGraphics().add(g1);
 
-        Point geometry2 = new Point( 8.507309,47.408288, SPATIAL_REFERENCE);
-        Graphic g2 = new Graphic(geometry2, s);
-        overlay.getGraphics().add(g2);
+//        Point geometry1 = new Point(8.507847,47.408992,  SPATIAL_REFERENCE);  // x : lng, y : lat
+//        SimpleMarkerSymbol s = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CROSS, Color.BLUE, 10);
+//        Graphic g1 = new Graphic(geometry1, s);
+//        overlay.getGraphics().add(g1);
+//
+//        Point geometry2 = new Point( 8.507309,47.408288, SPATIAL_REFERENCE);
+//        Graphic g2 = new Graphic(geometry2, s);
+//        overlay.getGraphics().add(g2);
+
+        switchTrackFeature = findViewById(R.id.switchTrack);
+        switchTrackFeature.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick (View v){
+                if (switchTrackFeature.isChecked()){
+                    map.getOperationalLayers().add(trackFeatureLayer);
+
+                }
+                else {
+                    map.getOperationalLayers().remove(trackFeatureLayer);
+                }
+            }
+
+        });
 
 
-        // set an on touch listener to listen for click events
+        // Set an on touch listener to listen for click events.
         mMapView.setOnTouchListener(new DefaultMapViewOnTouchListener(this, mMapView) {
             @Override
             public boolean onSingleTapConfirmed(MotionEvent e) {
@@ -93,29 +121,28 @@ public class ActivitiyMap extends AppCompatActivity {
                     mCallout.dismiss();
                 }
                 // get the point that was clicked and convert it to a point in map coordinates
-                final Point clickPoint = mMapView
-                        .screenToLocation(new android.graphics.Point(Math.round(e.getX()), Math.round(e.getY())));
+                final Point clickPoint = mMapView.screenToLocation(new android.graphics.Point(Math.round(e.getX()), Math.round(e.getY())));
                 // create a selection tolerance
                 int tolerance = 10;
                 double mapTolerance = tolerance * mMapView.getUnitsPerDensityIndependentPixel();
                 // use tolerance to create an envelope to query
-                Envelope envelope = new Envelope(clickPoint.getX() - mapTolerance, clickPoint.getY() - mapTolerance,
-                        clickPoint.getX() + mapTolerance, clickPoint.getY() + mapTolerance, map.getSpatialReference());
+                Envelope envelope = new Envelope(clickPoint.getX() - mapTolerance, clickPoint.getY() - mapTolerance,clickPoint.getX() + mapTolerance, clickPoint.getY() + mapTolerance, map.getSpatialReference());
                 QueryParameters query = new QueryParameters();
                 query.setGeometry(envelope);
                 // request all available attribute fields
-                final ListenableFuture<FeatureQueryResult> future = track.queryFeaturesAsync(query, ServiceFeatureTable.QueryFeatureFields.LOAD_ALL);
+                final ListenableFuture<FeatureQueryResult> futureTreasure = treasureTable.queryFeaturesAsync(query, ServiceFeatureTable.QueryFeatureFields.LOAD_ALL);
+                final ListenableFuture<FeatureQueryResult> futureTrack = trackTable.queryFeaturesAsync(query, ServiceFeatureTable.QueryFeatureFields.LOAD_ALL);
                 // add done loading listener to fire when the selection returns
 
-
-                future.addDoneListener(new Runnable() {
+                // Listener for Treasure feature.
+                futureTreasure.addDoneListener(new Runnable() {
                     @Override
                     public void run() {
                         try {
                             //call get on the future to get the result
-                            FeatureQueryResult result = future.get();
+                            FeatureQueryResult resultTreasure = futureTreasure.get();
                             // create an Iterator
-                            Iterator<Feature> iterator = result.iterator();
+                            Iterator<Feature> iteratorTreasure = resultTreasure.iterator();
                             // create a TextView to display field values
                             TextView calloutContent = new TextView(getApplicationContext());
                             calloutContent.setTextColor(Color.BLACK);
@@ -127,8 +154,58 @@ public class ActivitiyMap extends AppCompatActivity {
                             // cycle through selections
                             int counter = 0;
                             Feature feature;
-                            while (iterator.hasNext()) {
-                                feature = iterator.next();
+                            while (iteratorTreasure.hasNext()) {
+                                feature = iteratorTreasure.next();
+                                // create a Map of all available attributes as name value pairs
+                                Map<String, Object> attr = feature.getAttributes();
+                                Set<String> keys = attr.keySet();
+                                for (String key : keys) {
+                                    Object value = attr.get(key);
+                                    // format observed field value as date
+                                    if (value instanceof GregorianCalendar) {
+                                        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd-MMM-yyyy", Locale.US);
+                                        value = simpleDateFormat.format(((GregorianCalendar) value).getTime());
+                                    }
+                                    // append name value pairs to TextView
+                                    calloutContent.append(key + " | " + value + "\n");
+                                }
+                                counter++;
+                                // center the mapview on selected feature
+                                Envelope envelope = feature.getGeometry().getExtent();
+                                mMapView.setViewpointGeometryAsync(envelope, 200);
+                                // show CallOut
+                                mCallout.setLocation(clickPoint);
+                                mCallout.setContent(calloutContent);
+                                mCallout.show();
+                            }
+                        } catch (Exception e) {
+                            Log.e(getResources().getString(R.string.app_name), "Select feature failed: " + e.getMessage());
+                        }
+                    }
+                });
+
+                // Listener for Track feature.
+                futureTrack.addDoneListener(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            //call get on the future to get the result
+                            FeatureQueryResult resultTrack = futureTrack.get();
+                            // create an Iterator
+                            Iterator<Feature> iteratorTrack = resultTrack.iterator();
+                            // create a TextView to display field values
+                            TextView calloutContent = new TextView(getApplicationContext());
+                            calloutContent.setTextColor(Color.BLACK);
+                            calloutContent.setSingleLine(false);
+                            calloutContent.setVerticalScrollBarEnabled(true);
+                            calloutContent.setScrollBarStyle(View.SCROLLBARS_INSIDE_INSET);
+                            calloutContent.setMovementMethod(new ScrollingMovementMethod());
+                            calloutContent.setLines(5);
+                            // cycle through selections
+                            int counter = 0;
+                            Feature feature;
+                            while (iteratorTrack.hasNext()) {
+                                feature = iteratorTrack.next();
                                 // create a Map of all available attributes as name value pairs
                                 Map<String, Object> attr = feature.getAttributes();
                                 Set<String> keys = attr.keySet();
