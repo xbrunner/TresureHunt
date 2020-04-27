@@ -31,12 +31,14 @@ import java.util.Map;
 import android.widget.Toast;
 
 import ch.ethz.ikg.treasurehunt.model.Treasure;
+import com.esri.arcgisruntime.ArcGISRuntimeException;
 import com.esri.arcgisruntime.concurrent.ListenableFuture;
 import com.esri.arcgisruntime.data.Feature;
 import com.esri.arcgisruntime.data.FeatureEditResult;
 import com.esri.arcgisruntime.data.ServiceFeatureTable;
 import com.esri.arcgisruntime.geometry.*;
 import com.esri.arcgisruntime.geometry.Point;
+import com.esri.arcgisruntime.loadable.LoadStatus;
 
 
 /**
@@ -71,6 +73,7 @@ public class TreasureHunt extends AppCompatActivity
     private int currentCoins = 0;
     private int userId = 23; // User: Xavier Brunner
     private int trackId = 0;
+    private int test =0;
 
 
 
@@ -119,8 +122,11 @@ public class TreasureHunt extends AppCompatActivity
 
 
         // Create service feature table from URL.
-        trackFeature = new ServiceFeatureTable("https://services1.arcgis.com/i9MtZ1vtgD3gTnyL/arcgis/rest/services/track/FeatureServer/0");
+        //trackFeature = new ServiceFeatureTable("https://services1.arcgis.com/i9MtZ1vtgD3gTnyL/arcgis/rest/services/track/FeatureServer/0");
         treasureFeature = new ServiceFeatureTable("https://services1.arcgis.com/cgb2c0bypateGgm9/ArcGIS/rest/services/Treasure_Layer/FeatureServer/0");
+        treasureFeature.loadAsync();
+
+
 
         // Set up all manager references.
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
@@ -309,8 +315,22 @@ public class TreasureHunt extends AppCompatActivity
 
             //Add Feature to map
             //Point foundTreasurePoint = new Point( currentLocation.getLongitude(),currentLocation.getLatitude());
-            Point foundTreasurePoint = new Point( 8.507309,47.408288, 0,  SpatialReferences.getWgs84());
-            //addFeature(foundTreasurePoint, treasureFeature);
+            Point foundTreasurePoint = new Point( 47.419509,7.081406,  SpatialReferences.getWgs84());
+
+            treasureFeature.addDoneLoadingListener(new Runnable(){
+                @Override
+                public void run() {
+                    if(treasureFeature.getLoadStatus() == LoadStatus.LOADED) {
+
+                        addFeature(foundTreasurePoint, treasureFeature);
+                    } else {
+                        treasureFeature.retryLoadAsync();
+
+
+                    }
+                }
+            });
+
 
             currentTreasure = null;
             updateSpinner();
@@ -383,9 +403,9 @@ public class TreasureHunt extends AppCompatActivity
         attributes.put("timestamp", "2018-05-29 13:50:41.493");
         attributes.put("collected_coins", Double.valueOf(currentCoins));
         attributes.put("treasure_name", currentTreasure.getName());
-        Boolean canAdd = featureTable.canAdd();
         // creates a new feature using default attributes and point
-        Feature feature = featureTable.createFeature(attributes, new Point( 8.507309,47.408288));
+        Feature feature = featureTable.createFeature(attributes, mapPoint);
+
         // Add the new feature to the feature table and to server
         // check if feature can be added to feature table
         if (featureTable.canAdd()) {
@@ -395,37 +415,6 @@ public class TreasureHunt extends AppCompatActivity
             runOnUiThread(() -> logToUser(true, "Error cannot add to feature table"));
         }
     }
-
-
-
-/*        final ListenableFuture<Void> listenableFuture = featureTable.addFeatureAsync(feature);
-        listenableFuture.addDoneListener(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    listenableFuture.get();
-                    final ListenableFuture<List<FeatureEditResult>> applyEditsFuture = featureTable.applyEditsAsync();
-                    applyEditsFuture.addDoneListener(new Runnable() {
-                        @Override
-                        public void run() {
-                            try{
-                                final List<FeatureEditResult> featureEditResults = applyEditsFuture.get();
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            } catch (ExecutionException e) {
-                                e.printStackTrace();
-                            }
-
-                        }
-                    });
-                }
-                catch(Exception ex){
-
-                }
-            }
-        });*/
-
-//    }
 
     private void applyEdits(ServiceFeatureTable featureTable) {
 

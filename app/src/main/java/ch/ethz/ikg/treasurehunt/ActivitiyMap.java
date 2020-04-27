@@ -8,11 +8,8 @@ import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.TextView;
-import android.widget.Switch;
-import android.widget.Toast;
+import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.SwitchCompat;
 import com.esri.arcgisruntime.concurrent.ListenableFuture;
 import com.esri.arcgisruntime.data.Feature;
 import com.esri.arcgisruntime.data.FeatureQueryResult;
@@ -23,13 +20,11 @@ import com.esri.arcgisruntime.mapping.Basemap;
 import com.esri.arcgisruntime.mapping.view.*;
 import com.esri.arcgisruntime.mapping.ArcGISMap;
 import com.esri.arcgisruntime.data.ServiceFeatureTable;
-import com.esri.arcgisruntime.layers.ArcGISTiledLayer;
 import com.esri.arcgisruntime.layers.FeatureLayer;
-import com.esri.arcgisruntime.mapping.ArcGISMap;
-import com.esri.arcgisruntime.mapping.Basemap;
 import com.esri.arcgisruntime.mapping.view.MapView;
-import com.esri.arcgisruntime.symbology.SimpleMarkerSymbol;
-import com.esri.arcgisruntime.symbology.Symbol;
+import com.esri.arcgisruntime.data.FeatureQueryResult;
+import com.esri.arcgisruntime.data.QueryParameters;
+
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -46,16 +41,42 @@ public class ActivitiyMap extends AppCompatActivity {
              private MapView mMapView;
              private Callout mCallout;
              private SpatialReference SPATIAL_REFERENCE = SpatialReferences.getWgs84();
+             private Spinner spinner = null;
+             private String selectedPerson = "";
+             private Integer selectedId = 0;
+
+
 
              // Define Switch and check state.
              private Switch switchTrackFeature;
 //             private Boolean switchState = switchTrack.isChecked();
+
+
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
+
+        // Spinner to choose ID.
+        spinner = findViewById(R.id.spinner);
+        final List<String> list = new ArrayList<String>();
+        addId(list);
+        ArrayAdapter<String> adp1 = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, list);
+        adp1.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adp1);
+        spinner.setAdapter(adp1);
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                selectedId = spinner.getSelectedItemPosition() +20; //IDs start at 20.
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+            }
+        });
 
         Intent intent = getIntent();
 //        String uriString = getIntent().getDataString();
@@ -247,7 +268,27 @@ public class ActivitiyMap extends AppCompatActivity {
 
     }
 
-             @Override
+    private void addId(List<String> listId) {
+        listId.add("Mudathir Awadaljeed");
+        listId.add("Isabelle Bai");
+        listId.add("Simone Brönnimann");
+        listId.add("Xavier Brunner");
+        listId.add("Patrik Eugster");
+        listId.add("Xi Fan");
+        listId.add("Valérie Hellmüller");
+        listId.add("Yuchang Jiang");
+        listId.add("Selim Kälin");
+        listId.add("Maria Pérez Ortega");
+        listId.add("Laura Schalbetter");
+        listId.add("Yihang She");
+        listId.add("Reto Spannagel");
+        listId.add("Raphael Stauffer");
+        listId.add("Han Sun");
+        listId.add("Evelyn Weiss");
+        listId.add("Others");
+    }
+
+    @Override
              protected void onPause() {
                  mMapView.pause();
                  super.onPause();
