@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.provider.SyncStateContract;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -70,7 +71,7 @@ public class ActivitiyMap extends AppCompatActivity {
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                selectedId = spinner.getSelectedItemPosition() +20; //IDs start at 20.
+                selectedId = spinner.getSelectedItemPosition() +19; //IDs start at 20.
             }
 
             @Override
@@ -269,6 +270,7 @@ public class ActivitiyMap extends AppCompatActivity {
     }
 
     private void addId(List<String> listId) {
+        listId.add("All users");
         listId.add("Mudathir Awadaljeed");
         listId.add("Isabelle Bai");
         listId.add("Simone Brönnimann");
@@ -285,7 +287,7 @@ public class ActivitiyMap extends AppCompatActivity {
         listId.add("Raphael Stauffer");
         listId.add("Han Sun");
         listId.add("Evelyn Weiss");
-        listId.add("Others");
+        listId.add("Other users");
     }
 
     @Override
