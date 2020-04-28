@@ -20,13 +20,14 @@ import androidx.core.app.ActivityCompat;
 import androidx.appcompat.app.AppCompatActivity;
 import android.view.View;
 import android.content.Intent;
-
-import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 
+import java.util.HashMap;
+import java.util.List;
 import java.io.InputStream;
-
+import java.util.ArrayList;
+import java.util.Map;
 import android.widget.Toast;
 
 import ch.ethz.ikg.treasurehunt.model.Treasure;
@@ -70,10 +71,9 @@ public class TreasureHunt extends AppCompatActivity
     private double currentTemperature = 20.0;
     private double currentHeading;
     private int currentCoins = 0;
-
-    // Identifiers (IDs).
     private int userId = 23; // User: Xavier Brunner
-    private int trackId = (int) new Date().getTime();; //Unique track ID depend on the current Time.
+    private int trackId = 0;
+    private int test =0;
 
 
 
@@ -97,9 +97,8 @@ public class TreasureHunt extends AppCompatActivity
     private ServiceFeatureTable treasureFeature;
     private ServiceFeatureTable trackFeature;
 
-    // Create Polyline for Track.
-    private PolylineBuilder polylineBuilder = new PolylineBuilder(SpatialReferences.getWgs84());
-    private Polyline polylineTrack = null;
+    // Create polyline.
+    private Polyline polyline = null;
 
 
 
@@ -125,10 +124,10 @@ public class TreasureHunt extends AppCompatActivity
         });
 
 
-        // Create service feature table from URL and Load Async.
+        // Create service feature table from URL.
         trackFeature = new ServiceFeatureTable("https://services1.arcgis.com/i9MtZ1vtgD3gTnyL/arcgis/rest/services/track/FeatureServer/0");
-        treasureFeature = new ServiceFeatureTable("https://services1.arcgis.com/i9MtZ1vtgD3gTnyL/arcgis/rest/services/treassure/FeatureServer/0");
         trackFeature.loadAsync();
+        treasureFeature = new ServiceFeatureTable("https://services1.arcgis.com/i9MtZ1vtgD3gTnyL/arcgis/rest/services/treassure/FeatureServer/0");
         treasureFeature.loadAsync();
 
 
@@ -146,28 +145,9 @@ public class TreasureHunt extends AppCompatActivity
     }
     private void myButtonAction() {
 
-
-
-
-        //Add Feature to map
-        trackFeature.addDoneLoadingListener(new Runnable(){
-            @Override
-            public void run() {
-                if(trackFeature.getLoadStatus() == LoadStatus.LOADED) {
-
-                    addFeatureTrack(polylineTrack, trackFeature);
-                } else {
-                    trackFeature.retryLoadAsync();
-
-
-                }
-            }
-        });
-
-
-/*            Intent Intent = new Intent(this, ActivitiyMap.class);
-            //Intent.putExtra("currentTreasureName", selectedTreasure.getTreasureName());
-            startActivityForResult(Intent, 0);*/
+        Intent Intent = new Intent(this, ActivitiyMap.class);
+        //Intent.putExtra("currentTreasureName", selectedTreasure.getTreasureName());
+        startActivityForResult(Intent, 0);
     }
 
     @Override
@@ -206,21 +186,23 @@ public class TreasureHunt extends AppCompatActivity
     }
 
     @Override
-    protected void onStop() {
-        super.onStop();
-
-
-    }
-
-
-    @Override
     protected void onDestroy() {
         super.onDestroy();
-
         Intent Intent = new Intent(this, AskShare.class);
         Intent.putExtra("userId", userId);
         Intent.putExtra("currentCoins", currentCoins);
         startActivityForResult(Intent, 0);
+
+//        //Generate an unique User ID with the Android ID.
+//        TelephonyManager tm = (TelephonyManager) this.getSystemService(Context.TELEPHONY_SERVICE);
+//        String userId = Settings.Secure.getString(this.getContentResolver(), Settings.Secure.ANDROID_ID);
+//        Toast.makeText(getApplicationContext(), userId, Toast.LENGTH_SHORT).show();
+
+
+
+        //Toast.makeText(getApplicationContext(), "onDestroy", Toast.LENGTH_SHORT).show();
+
+
     }
 
     /**
@@ -336,34 +318,37 @@ public class TreasureHunt extends AppCompatActivity
                     currentTreasure.getName(), coinAward), Toast.LENGTH_LONG).show();
 
             //Add Feature to map
-            Point foundTreasurePoint = new Point( currentLocation.getLongitude(),currentLocation.getLatitude());
+            //Point foundTreasurePoint = new Point( currentLocation.getLongitude(),currentLocation.getLatitude());
+            Point foundTreasurePoint = new Point( 47.419509,7.081406,  SpatialReferences.getWgs84());
 
-/*            treasureFeature.addDoneLoadingListener(new Runnable(){
+            treasureFeature.addDoneLoadingListener(new Runnable(){
                 @Override
                 public void run() {
                     if(treasureFeature.getLoadStatus() == LoadStatus.LOADED) {
-                        addFeaturePoint(foundTreasurePoint, treasureFeature);
+
+                        //addPointFeature(foundTreasurePoint, treasureFeature);
                     } else {
                         treasureFeature.retryLoadAsync();
 
 
                     }
                 }
-            });*/
-            //Add Feature to map
+            });
+
             trackFeature.addDoneLoadingListener(new Runnable(){
                 @Override
                 public void run() {
                     if(trackFeature.getLoadStatus() == LoadStatus.LOADED) {
 
-                        addFeatureTrack(polylineTrack, trackFeature);
+                        addPolylineFeature(polyline, trackFeature);
                     } else {
-                        trackFeature.retryLoadAsync();
+                        treasureFeature.retryLoadAsync();
 
 
                     }
                 }
             });
+
 
             currentTreasure = null;
             updateSpinner();
@@ -414,36 +399,33 @@ public class TreasureHunt extends AppCompatActivity
         currentLocation = location;
         updateGameAndUI();
 
-        // Create a builder, set the Spatial Reference.
-        Part trackPart = new Part(SpatialReferences.getWgs84());
-        trackPart.add(new LineSegment(0, 0, 0, 7));  // A LineSegment (0,0) -> (0,7)
-//        Point currentPoint = new Point(currentLocation.getLongitude(),currentLocation.getLatitude());
-//        trackPart.addPoint(currentPoint);
 
-        // Add the point to the Builder.
-        polylineBuilder.addPart(trackPart);
-        // Create polyline with track
-        polylineTrack = polylineBuilder.toGeometry(); // Convert the current state of the builder to a Polyline.
+        // Create a builder, set the Spatial Reference
+        PolylineBuilder polylineBuilder = new PolylineBuilder(SpatialReferences.getWgs84());
+
+
+        Part trackPart = new Part(SpatialReferences.getWgs84());
+        trackPart.addPoint(currentLocation.getLongitude(), currentLocation.getLatitude());
+        polylineBuilder.getParts().add(trackPart);
+        polyline = polylineBuilder.toGeometry();
 
     }
 
-    private void addFeaturePoint(Point mapPoint, final ServiceFeatureTable featureTable) {
+    private void addPointFeature(Point mapPoint, final ServiceFeatureTable featureTable) {
 
-        // Create default attributes for the feature.
+        // create default attributes for the feature
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("user_id", userId);
         attributes.put("track_id", trackId);
-        attributes.put("timestamp", currentLocation.getTime());
+        attributes.put("timestamp", "2018-05-29 13:50:41.493");
         attributes.put("collected_coins", Double.valueOf(currentCoins));
         attributes.put("treasure_name", currentTreasure.getName());
-
-        // Add feature to Server.
+        // creates a new feature using default attributes and point
         Feature feature = featureTable.createFeature(attributes, mapPoint);
 
-        // Add the new feature to the feature table and to server.
-        // Check if feature can be added to feature table.
+        // Add the new feature to the feature table and to server
+        // check if feature can be added to feature table
         if (featureTable.canAdd()) {
-
             // add the new feature to the feature table and to server
             featureTable.addFeatureAsync(feature).addDoneListener(() -> applyEdits(featureTable));
         } else {
@@ -452,27 +434,25 @@ public class TreasureHunt extends AppCompatActivity
     }
 
 
-    private void addFeatureTrack(Polyline mapPolyline, final ServiceFeatureTable featureTable) {
+    private void addPolylineFeature(Polyline polyline, final ServiceFeatureTable featureTable) {
 
-        // Create default attributes for the feature.
+        // create default attributes for the feature
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("user_id", userId);
         attributes.put("track_id", trackId);
-        attributes.put("timestamp", currentLocation.getTime());
+        attributes.put("timestamp", "2018-05-29 13:50:41.493");
+        // creates a new feature using default attributes and point
+        Feature feature = featureTable.createFeature(attributes, polyline);
 
-        // Add feature to Server.
-        Feature feature = featureTable.createFeature(attributes, mapPolyline);
-        // Add the new feature to the feature table and to server.
-        // Check if feature can be added to feature table.
+        // Add the new feature to the feature table and to server
+        // check if feature can be added to feature table
         if (featureTable.canAdd()) {
-
-            // Add the new feature to the feature table and to server.
+            // add the new feature to the feature table and to server
             featureTable.addFeatureAsync(feature).addDoneListener(() -> applyEdits(featureTable));
         } else {
             runOnUiThread(() -> logToUser(true, "Error cannot add to feature table"));
         }
     }
-
 
     private void applyEdits(ServiceFeatureTable featureTable) {
 
@@ -484,7 +464,7 @@ public class TreasureHunt extends AppCompatActivity
                 // check if the server edit was successful
                 if (editResults != null && !editResults.isEmpty()) {
                     if (!editResults.get(0).hasCompletedWithErrors()) {
-                        runOnUiThread(() -> logToUser(false, "New layer added"));
+                        runOnUiThread(() -> logToUser(false, "New Layer added"));
                     } else {
                         throw editResults.get(0).getError();
                     }
