@@ -99,6 +99,7 @@ public class TreasureHunt extends AppCompatActivity
 
     // Create Polyline for Track.
     private PolylineBuilder polylineBuilder = new PolylineBuilder(SpatialReferences.getWgs84());
+    private Polyline polylineTrack = null;
 
 
 
@@ -146,8 +147,7 @@ public class TreasureHunt extends AppCompatActivity
     private void myButtonAction() {
 
 
-        // Create polyline with track
-        Polyline polylineTrack = polylineBuilder.toGeometry(); // Convert the current state of the builder to a Polyline
+
 
         //Add Feature to map
         trackFeature.addDoneLoadingListener(new Runnable(){
@@ -338,7 +338,7 @@ public class TreasureHunt extends AppCompatActivity
             //Add Feature to map
             Point foundTreasurePoint = new Point( currentLocation.getLongitude(),currentLocation.getLatitude());
 
-            treasureFeature.addDoneLoadingListener(new Runnable(){
+/*            treasureFeature.addDoneLoadingListener(new Runnable(){
                 @Override
                 public void run() {
                     if(treasureFeature.getLoadStatus() == LoadStatus.LOADED) {
@@ -349,8 +349,21 @@ public class TreasureHunt extends AppCompatActivity
 
                     }
                 }
-            });
+            });*/
+            //Add Feature to map
+            trackFeature.addDoneLoadingListener(new Runnable(){
+                @Override
+                public void run() {
+                    if(trackFeature.getLoadStatus() == LoadStatus.LOADED) {
 
+                        addFeatureTrack(polylineTrack, trackFeature);
+                    } else {
+                        trackFeature.retryLoadAsync();
+
+
+                    }
+                }
+            });
 
             currentTreasure = null;
             updateSpinner();
@@ -402,13 +415,15 @@ public class TreasureHunt extends AppCompatActivity
         updateGameAndUI();
 
         // Create a builder, set the Spatial Reference.
-        Part firstPart = new Part(SpatialReferences.getWgs84());
-        Point currentPoint = new Point(currentLocation.getLongitude(),currentLocation.getLatitude());
-        firstPart.addPoint(currentPoint);
+        Part trackPart = new Part(SpatialReferences.getWgs84());
+        trackPart.add(new LineSegment(0, 0, 0, 7));  // A LineSegment (0,0) -> (0,7)
+//        Point currentPoint = new Point(currentLocation.getLongitude(),currentLocation.getLatitude());
+//        trackPart.addPoint(currentPoint);
 
         // Add the point to the Builder.
-        polylineBuilder.addPart(firstPart);
-
+        polylineBuilder.addPart(trackPart);
+        // Create polyline with track
+        polylineTrack = polylineBuilder.toGeometry(); // Convert the current state of the builder to a Polyline.
 
     }
 
