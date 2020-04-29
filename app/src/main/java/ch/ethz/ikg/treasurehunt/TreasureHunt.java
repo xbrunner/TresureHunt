@@ -340,7 +340,7 @@ public class TreasureHunt extends AppCompatActivity
             trackId += 1;
 
             // Save current location for the server.
-            Point foundTreasurePoint = new Point( 47.419509,7.081406,  SpatialReferences.getWgs84());
+            Point foundTreasurePoint = new Point( 7.081406, 47.419509,  SpatialReferences.getWgs84());
 
             // Calculate current time for server.
             currentTime();
