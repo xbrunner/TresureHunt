@@ -39,6 +39,8 @@ import java.util.*;
  */
 public class ActivitiyMap extends AppCompatActivity {
 
+            private static final String TAG = ActivitiyMap.class.getSimpleName();
+
              private MapView mMapView;
              private Callout mCallout;
              private SpatialReference SPATIAL_REFERENCE = SpatialReferences.getWgs84();
@@ -50,8 +52,6 @@ public class ActivitiyMap extends AppCompatActivity {
 
              // Define Switch and check state.
              private Switch switchTrackFeature;
-//             private Boolean switchState = switchTrack.isChecked();
-
 
 
     @SuppressLint("ClickableViewAccessibility")
@@ -59,6 +59,31 @@ public class ActivitiyMap extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
+
+        // Add treasure Feature Layer.
+        ServiceFeatureTable treasureTable = new ServiceFeatureTable("https://services1.arcgis.com/i9MtZ1vtgD3gTnyL/arcgis/rest/services/treassure/FeatureServer/0");
+        treasureTable.loadAsync();
+        FeatureLayer treasureFeatureLayer = new FeatureLayer(treasureTable);
+
+
+        // Add track Feature Layer.
+        ServiceFeatureTable trackTable = new ServiceFeatureTable("https://services1.arcgis.com/i9MtZ1vtgD3gTnyL/arcgis/rest/services/track/FeatureServer/0");
+        trackTable.loadAsync();
+        FeatureLayer trackFeatureLayer = new FeatureLayer(trackTable);
+
+        mMapView = findViewById(R.id.mapView);
+        ArcGISMap map = new ArcGISMap(Basemap.Type.DARK_GRAY_CANVAS_VECTOR, 47.408367, 8.507640, 16);
+
+        // Adding Basemap.
+        ArcGISTiledLayer layer = new ArcGISTiledLayer("http://services.arcgisonline.com/arcgis/rest/services/DARK_GRAY_CANVAS_VECTOR/MapServer");
+        map.getOperationalLayers().add(layer);
+        // Adding Layer
+        map.getOperationalLayers().add(treasureFeatureLayer);
+
+        // Add Graphic Layer.
+        GraphicsOverlay overlay = new GraphicsOverlay();
+        mMapView.getGraphicsOverlays().add(overlay);
+
 
         // Spinner to choose ID.
         spinner = findViewById(R.id.spinner);
@@ -71,7 +96,10 @@ public class ActivitiyMap extends AppCompatActivity {
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                selectedId = spinner.getSelectedItemPosition() +19; //IDs start at 20.
+                selectedId = spinner.getSelectedItemPosition() + 19; //Id List begin at 20. -> 19 is all the users
+                searchForGeometry(selectedId, treasureTable, treasureFeatureLayer, map);
+                //searchForGeometry(selectedId, trackTable, trackFeatureLayer, map);
+
             }
 
             @Override
@@ -79,52 +107,15 @@ public class ActivitiyMap extends AppCompatActivity {
             }
         });
 
-        Intent intent = getIntent();
-//        String uriString = getIntent().getDataString();
-//        double lat = Double.parseDouble(uriString.substring(uriString.indexOf(':') + 1, uriString.indexOf(',')));
-//        double lng = Double.parseDouble(uriString.substring(uriString.indexOf(',') + 1, uriString.indexOf('?')));
-//        int zoom = Integer.parseInt(uriString.substring(uriString.indexOf('=') + 1));
-
-        mMapView = findViewById(R.id.mapView);
-        ArcGISMap map = new ArcGISMap(Basemap.Type.DARK_GRAY_CANVAS_VECTOR, 47.408367, 8.507640, 16);
-
-        // Adding Basemap.
-        ArcGISTiledLayer layer = new ArcGISTiledLayer("http://services.arcgisonline.com/arcgis/rest/services/DARK_GRAY_CANVAS_VECTOR/MapServer");
-        map.getOperationalLayers().add(layer);
-
-        // Add treasure Feature Layer.
-        ServiceFeatureTable treasureTable = new ServiceFeatureTable("https://services1.arcgis.com/i9MtZ1vtgD3gTnyL/arcgis/rest/services/treassure/FeatureServer/0");
-        FeatureLayer treasureFeatureLayer = new FeatureLayer(treasureTable);
-        map.getOperationalLayers().add(treasureFeatureLayer);
-
-        // Add track Feature Layer.
-        ServiceFeatureTable trackTable = new ServiceFeatureTable("https://services1.arcgis.com/i9MtZ1vtgD3gTnyL/arcgis/rest/services/track/FeatureServer/0");
-        FeatureLayer trackFeatureLayer = new FeatureLayer(trackTable);
 
 
-
-        // Add Graphic Layer.
-        GraphicsOverlay overlay = new GraphicsOverlay();
-        mMapView.getGraphicsOverlays().add(overlay);
-
-
-
-//        Point geometry1 = new Point(8.507847,47.408992,  SPATIAL_REFERENCE);  // x : lng, y : lat
-//        SimpleMarkerSymbol s = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CROSS, Color.BLUE, 10);
-//        Graphic g1 = new Graphic(geometry1, s);
-//        overlay.getGraphics().add(g1);
-//
-//        Point geometry2 = new Point( 8.507309,47.408288, SPATIAL_REFERENCE);
-//        Graphic g2 = new Graphic(geometry2, s);
-//        overlay.getGraphics().add(g2);
-
+        // Switch action.
         switchTrackFeature = findViewById(R.id.switchTrack);
         switchTrackFeature.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick (View v){
                 if (switchTrackFeature.isChecked()){
-                    map.getOperationalLayers().add(trackFeatureLayer);
-
+                    searchForGeometry(selectedId, trackTable, trackFeatureLayer, map);
                 }
                 else {
                     map.getOperationalLayers().remove(trackFeatureLayer);
@@ -245,7 +236,7 @@ public class ActivitiyMap extends AppCompatActivity {
                                 // center the mapview on selected feature
                                 Envelope envelope = feature.getGeometry().getExtent();
                                 mMapView.setViewpointGeometryAsync(envelope, 200);
-                                // show CallOut
+//                                // show CallOut
                                 mCallout.setLocation(clickPoint);
                                 mCallout.setContent(calloutContent);
                                 mCallout.show();
@@ -265,9 +256,52 @@ public class ActivitiyMap extends AppCompatActivity {
         mCallout = mMapView.getCallout();
         //mCallout.show();
 
-
-
     }
+
+    private void searchForGeometry(final Integer id, ServiceFeatureTable mServiceFeatureTable, FeatureLayer mFeatureLayer, ArcGISMap map) {
+        map.getOperationalLayers().remove(mFeatureLayer);
+        // clear any previous selections
+        mFeatureLayer.clearSelection();
+        // create objects required to do a selection with a query
+        QueryParameters query = new QueryParameters();
+        // make search case insensitive
+        if (id == 19) {
+            query.setWhereClause("user_id <> null");
+        }
+        else if (id >= 20 && id <=35 ) {
+            query.setWhereClause("user_id = " + id);
+        }
+        else {query.setWhereClause("user_id > 35 AND user_id < 20");
+        }
+
+        // call select features
+        final ListenableFuture<FeatureQueryResult> future = mServiceFeatureTable.queryFeaturesAsync(query);
+        // add done loading listener to fire when the selection returns
+        future.addDoneListener(() -> {
+            try {
+                // call get on the future to get the result
+                FeatureQueryResult result = future.get();
+                // check there are some results
+                Iterator<Feature> resultIterator = result.iterator();
+                if (resultIterator.hasNext()) {
+                    // get the extent of the first feature in the result to zoom to
+                    Feature feature = resultIterator.next();
+                    Envelope envelope = feature.getGeometry().getExtent();
+                    mMapView.setViewpointGeometryAsync(envelope, 10);
+                    // select the feature
+                     mFeatureLayer.selectFeature(feature);
+                } else {
+                    Toast.makeText(this, "Found layers for id : " + id, Toast.LENGTH_LONG).show();
+                    map.getOperationalLayers().add(mFeatureLayer);
+                }
+            } catch (Exception e) {
+                String error = "Feature search failed for: " + id + ". Error: " + e.getMessage();
+                Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+                Log.e(TAG, error);
+            }
+        });
+    }
+
 
     private void addId(List<String> listId) {
         listId.add("All users");
