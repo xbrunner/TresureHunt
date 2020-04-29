@@ -1,7 +1,6 @@
 package ch.ethz.ikg.treasurehunt;
 
 import android.Manifest;
-import android.app.Dialog;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
@@ -12,8 +11,6 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
-import android.provider.Settings;
-import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.widget.*;
 import androidx.core.app.ActivityCompat;
@@ -32,7 +29,6 @@ import java.io.InputStream;
 import android.widget.Toast;
 
 import ch.ethz.ikg.treasurehunt.model.Treasure;
-import com.esri.arcgisruntime.ArcGISRuntimeException;
 import com.esri.arcgisruntime.concurrent.ListenableFuture;
 import com.esri.arcgisruntime.data.Feature;
 import com.esri.arcgisruntime.data.FeatureEditResult;
@@ -43,18 +39,29 @@ import com.esri.arcgisruntime.geometry.PolylineBuilder;
 import com.esri.arcgisruntime.geometry.Point;
 import com.esri.arcgisruntime.loadable.LoadStatus;
 
-
 /**
- * The TreasureHunt activity is the main screen of the treasure hunt application. It features a
- * spinner to select the current treasure, a compass that shows the direction to this treasure,
+ * The TreasureHunt activity is the main screen of the treasure hunt application.
+ * *** Assignment 1 Solution
+ * It features a spinner to select the current treasure, a compass that shows the direction to this treasure,
  * and several UI elements that indicate the player's speed, the current temperature, the coins
  * a player already has collected, etc.
  * ->By clicking on the Android back button to quit the app, the AskShare activity starts (Social sharing options).
  * ->By clicking on the "SEE MAP" button, the ActivityMap activity starts (Arc GIS SDK to show results).
+ *
+ * *** Assignment 2 Functionalities
+ * The track of the user and the collected treasures are uploaded to two differents ArcGIS features using URLs.
+ * The score can be shared by leaving the app (android back arrow of the device) on other apps via the "AskShare" Activity.
+ * The user can see the track and found treasures on the ActivityMap by clicking on the "SAVE TRACK AND SEE MAP" button.
+ * ->The track ID  change each time a treasure is found.
+ * ->The found treasure are immediately uploaded on the server.
+ * ->The tracks are uploaded on the serve by clicking on the "SAVE TRACK AND SEE MAP" button.
+ * -> The current time is calculated using the device (Emulator) time.
  */
+
 public class TreasureHunt extends AppCompatActivity
         implements LocationListener, SensorEventListener {
 
+    // Application tag.
     private static final String TAG = TreasureHunt.class.getSimpleName();
 
     // Some application constants.
@@ -95,11 +102,10 @@ public class TreasureHunt extends AppCompatActivity
     private ServiceFeatureTable treasureFeature;
     private ServiceFeatureTable trackFeature;
 
-    //Current Date and time.
+    //Current Date and time definition.
     private String currentMoment = null;
-    Date currentDate = new Date();
 
-    // Create a polyline builder, polyline track and the polyline.
+    // Create a polyline builder, polyline track and polyline for the track uploading.
     PolylineBuilder polylineBuilder = new PolylineBuilder(SpatialReferences.getWgs84()); //Spatial reference.
     Part trackPart = new Part(SpatialReferences.getWgs84());
     private Polyline polyline = null;
@@ -125,8 +131,11 @@ public class TreasureHunt extends AppCompatActivity
         });
 
         // Create service feature table from URL.
+        // Track feature.
         trackFeature = new ServiceFeatureTable("https://services1.arcgis.com/i9MtZ1vtgD3gTnyL/arcgis/rest/services/track/FeatureServer/0");
         trackFeature.loadAsync();
+
+        // Treasure feature.
         treasureFeature = new ServiceFeatureTable("https://services1.arcgis.com/i9MtZ1vtgD3gTnyL/arcgis/rest/services/treassure/FeatureServer/0");
         treasureFeature.loadAsync();
 
@@ -138,11 +147,9 @@ public class TreasureHunt extends AppCompatActivity
         readTreasures();
         updateSpinner();
         updateGameAndUI();
-
     }
 
     private void currentTime() {
-
         // Time format.
         String pattern = "MM/dd/yyyy HH:mm:ss";
         DateFormat df = new SimpleDateFormat(pattern);
@@ -161,6 +168,7 @@ public class TreasureHunt extends AppCompatActivity
         // Calculate current time for server.
         currentTime();
 
+        // Add track (polyline) feature on the server.
         trackFeature.addDoneLoadingListener(new Runnable(){
             @Override
             public void run() {
@@ -173,8 +181,8 @@ public class TreasureHunt extends AppCompatActivity
             }
         });
 
+        // Go to ActivityMap to see results on ArcGIS map.
         Intent Intent = new Intent(this, ActivitiyMap.class);
-        //Intent.putExtra("currentTreasureName", selectedTreasure.getTreasureName());
         startActivityForResult(Intent, 0);
     }
 
@@ -216,11 +224,11 @@ public class TreasureHunt extends AppCompatActivity
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        // Switch to Askshare Activity using Intent.
         Intent Intent = new Intent(this, AskShare.class);
-        Intent.putExtra("userId", userId);
-        Intent.putExtra("currentCoins", currentCoins);
+        Intent.putExtra("userId", userId); // To share user ID.
+        Intent.putExtra("currentCoins", currentCoins); // To share score.
         startActivityForResult(Intent, 0);
-
     }
 
     /**
@@ -276,6 +284,7 @@ public class TreasureHunt extends AppCompatActivity
             txtDistance.setText(R.string.distance_unk);
             return;
         }
+
         if (currentLocation != null) {
             double distance = Util.distance(currentLocation, currentTreasure.getLocation());
 
@@ -360,7 +369,6 @@ public class TreasureHunt extends AppCompatActivity
 
             currentTreasure = null;
             updateSpinner();
-
         }
     }
 
@@ -406,62 +414,62 @@ public class TreasureHunt extends AppCompatActivity
         currentLocation = location;
         updateGameAndUI();
 
-        // Add news points to polylineTrack.
+        // Add new points to polylineTrack.
         refreshTrack();
-
     }
 
+    //  Add new points to polylineTrack.
     private void refreshTrack() {
         polylineBuilder.getParts().add(trackPart);
         trackPart.addPoint(currentLocation.getLongitude(), currentLocation.getLatitude());
         trackPart.addPoint(currentLocation.getLongitude(), currentLocation.getLatitude());
     }
 
+    // Function to upload points on the ArcGIS URL.
     private void addPointFeature(Point mapPoint, final ServiceFeatureTable featureTable) {
-
-        // create default attributes for the feature
+        // Create default attributes for the feature.
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("user_id", userId);
         attributes.put("track_id", trackId);
         attributes.put("timestamp", currentMoment);
         attributes.put("collected_coins", Double.valueOf(currentCoins));
         attributes.put("treasure_name", currentTreasure.getName());
-        // creates a new feature using default attributes and point
+        // Creates a new feature using default attributes and point.
         Feature feature = featureTable.createFeature(attributes, mapPoint);
 
-        // Add the new feature to the feature table and to server
-        // check if feature can be added to feature table
+        // Add the new feature to the feature table and to server.
+        // Check if feature can be added to feature table.
         if (featureTable.canAdd()) {
-            // add the new feature to the feature table and to server
+            // Add the new feature to the feature table and to server.
             featureTable.addFeatureAsync(feature).addDoneListener(() -> applyEdits(featureTable));
         } else {
             runOnUiThread(() -> logToUser(true, "Error cannot add to feature table"));
         }
     }
 
-
+    // Function to upload polylines on the ArcGIS URL.
     private void addPolylineFeature(Polyline polyline, final ServiceFeatureTable featureTable) {
 
-        // create default attributes for the feature
+        // Create default attributes for the feature.
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("user_id", userId);
         attributes.put("track_id", trackId);
         attributes.put("timestamp", currentMoment);
-        // creates a new feature using default attributes and point
+        // Creates a new feature using default attributes and point.
         Feature feature = featureTable.createFeature(attributes, polyline);
 
-        // Add the new feature to the feature table and to server
-        // check if feature can be added to feature table
+        // Add the new feature to the feature table and to server.
+        // Check if feature can be added to feature table.
         if (featureTable.canAdd()) {
-            // add the new feature to the feature table and to server
+            // Add the new feature to the feature table and to server.
             featureTable.addFeatureAsync(feature).addDoneListener(() -> applyEdits(featureTable));
         } else {
             runOnUiThread(() -> logToUser(true, "Error cannot add to feature table"));
         }
     }
 
-    private void applyEdits(ServiceFeatureTable featureTable) {
 
+    private void applyEdits(ServiceFeatureTable featureTable) {
         // apply the changes to the server
         final ListenableFuture<List<FeatureEditResult>> editResult = featureTable.applyEditsAsync();
         editResult.addDoneListener(() -> {
@@ -490,6 +498,7 @@ public class TreasureHunt extends AppCompatActivity
             Log.d(TAG, message);
         }
     }
+
 
     @Override
     public void onSensorChanged(SensorEvent event) {
@@ -530,8 +539,6 @@ public class TreasureHunt extends AppCompatActivity
 
         updateGameAndUI();
     }
-
-
 
     // Empty overrides. ============================================================================
     @Override

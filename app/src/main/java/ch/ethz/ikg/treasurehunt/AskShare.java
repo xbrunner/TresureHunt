@@ -1,29 +1,17 @@
 package ch.ethz.ikg.treasurehunt;
 
 import android.content.Intent;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
-import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
-import com.esri.arcgisruntime.geometry.Point;
-import com.esri.arcgisruntime.geometry.SpatialReference;
-import com.esri.arcgisruntime.geometry.SpatialReferences;
-import com.esri.arcgisruntime.layers.ArcGISTiledLayer;
-import com.esri.arcgisruntime.mapping.ArcGISMap;
-import com.esri.arcgisruntime.mapping.Basemap;
-import com.esri.arcgisruntime.mapping.view.Graphic;
-import com.esri.arcgisruntime.mapping.view.GraphicsOverlay;
-import com.esri.arcgisruntime.mapping.view.MapView;
-import com.esri.arcgisruntime.symbology.SimpleMarkerSymbol;
-
 
 /**
- * The Ask Share give the possibility when the user want to quit the application to share the score.
+ * The Ask Share give the possibility when the user want to quit the application to share the score on another application.
  * -> By clicking on the Yes-button, the user can shows the won coins & the userID and choose the sharing application.
  * -> By clicking on the No-button, the app will be closed.
  */
+
 public class AskShare extends AppCompatActivity {
 
     // Initialization of sharing values.
@@ -46,10 +34,10 @@ public class AskShare extends AppCompatActivity {
 
         // Actualize values of sharing.
         userId = id;
-        currentCoins =coins;
+        currentCoins = coins;
 
         // Yes-button definition.
-        myYesButton = (Button)findViewById(R.id.yesButton);
+        myYesButton = (Button) findViewById(R.id.yesButton);
         myYesButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -58,7 +46,7 @@ public class AskShare extends AppCompatActivity {
         });
 
         //No-button definition.
-        myNoButton = (Button)findViewById(R.id.noButton);
+        myNoButton = (Button) findViewById(R.id.noButton);
         myNoButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -80,8 +68,6 @@ public class AskShare extends AppCompatActivity {
     // No-button finish the app activity.
     private void myNoButtonAction() {
         this.finish();
-
     }
-
 }
 
