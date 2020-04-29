@@ -165,15 +165,22 @@ public class ActivitiyMap extends AppCompatActivity {
                 double mapTolerance = tolerance * mMapView.getUnitsPerDensityIndependentPixel();
                 // use tolerance to create an envelope to query
                 Envelope envelope = new Envelope(clickPoint.getX() - mapTolerance, clickPoint.getY() - mapTolerance,clickPoint.getX() + mapTolerance, clickPoint.getY() + mapTolerance, map.getSpatialReference());
-                QueryParameters query = new QueryParameters();
-                query.setGeometry(envelope);
 
                 // Define Envelope to zoom back in displayLayer.
                 backEnvelope = envelope;
 
-                // request all available attribute fields
-                final ListenableFuture<FeatureQueryResult> futureTreasure = treasureTable.queryFeaturesAsync(query, ServiceFeatureTable.QueryFeatureFields.LOAD_ALL);
-                final ListenableFuture<FeatureQueryResult> futureTrack = trackTable.queryFeaturesAsync(query, ServiceFeatureTable.QueryFeatureFields.LOAD_ALL);
+                // Request all available attribute fields.
+                QueryParameters queryCurrentUser = new QueryParameters();
+                queryCurrentUser.setGeometry(envelope);
+                // make search case insensitive
+                if (selectedId >= 20 && selectedId <= 35) {
+                queryCurrentUser.setWhereClause("user_id =" + selectedId);
+                } else {
+                    queryCurrentUser.setWhereClause("user_id >= 0");
+                }
+
+                final ListenableFuture<FeatureQueryResult> futureTreasure = treasureTable.queryFeaturesAsync(queryCurrentUser, ServiceFeatureTable.QueryFeatureFields.LOAD_ALL);
+                final ListenableFuture<FeatureQueryResult> futureTrack = trackTable.queryFeaturesAsync(queryCurrentUser, ServiceFeatureTable.QueryFeatureFields.LOAD_ALL);
                 // add done loading listener to fire when the selection returns
 
                 // Listener for Treasure feature.
@@ -214,8 +221,11 @@ public class ActivitiyMap extends AppCompatActivity {
                                 counter++;
                                 // center the mapview on selected feature
                                 Envelope envelope = feature.getGeometry().getExtent();
-                                mMapView.setViewpointGeometryAsync(envelope, 200);
-
+                                //mMapView.setViewpointGeometryAsync(envelope, 200);
+                                // show CallOut
+                                mCallout.setLocation(clickPoint);
+                                mCallout.setContent(calloutContent);
+                                mCallout.show();
                             }
                         } catch (Exception e) {
                             Log.e(getResources().getString(R.string.app_name), "Select feature failed: " + e.getMessage());
@@ -260,8 +270,8 @@ public class ActivitiyMap extends AppCompatActivity {
                                 }
                                 counter++;
                                 // center the mapview on selected feature
-//                                Envelope envelope = feature.getGeometry().getExtent();
-//                                mMapView.setViewpointGeometryAsync(envelope, 200);
+                                Envelope envelope = feature.getGeometry().getExtent();
+                                mMapView.setViewpointGeometryAsync(envelope, 2);
 ////                                // show CallOut
                                 mCallout.setLocation(clickPoint);
                                 mCallout.setContent(calloutContent);
