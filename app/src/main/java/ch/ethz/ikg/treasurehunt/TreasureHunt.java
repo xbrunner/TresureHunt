@@ -53,7 +53,7 @@ import com.esri.arcgisruntime.loadable.LoadStatus;
  * The track of the user and the collected treasures are uploaded to two different ArcGIS features using URLs.
  * The score can be shared by leaving the app (android back arrow of the device) on other apps via the "AskShare" Activity.
  * The user can see the track and found treasures on the ActivityMap by clicking on the "SAVE TRACK AND SEE MAP" button.
- * ->The track ID  change each time a treasure is found.
+ * ->The track ID  change each time a treasure is found. After x treasures found the track ID is x.
  * ->The found treasure are immediately uploaded on the server.
  * ->The tracks are uploaded on the serve by clicking on the "SAVE TRACK AND SEE MAP" button.
  * -> The current time is calculated using the device (Emulator) time.
