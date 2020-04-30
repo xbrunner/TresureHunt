@@ -41,15 +41,16 @@ import com.esri.arcgisruntime.loadable.LoadStatus;
 
 /**
  * The TreasureHunt activity is the main screen of the treasure hunt application.
- * *** Assignment 1 Solution
+ *
+ * *** Assignment 1 Solution ***
  * It features a spinner to select the current treasure, a compass that shows the direction to this treasure,
  * and several UI elements that indicate the player's speed, the current temperature, the coins
  * a player already has collected, etc.
  * ->By clicking on the Android back button to quit the app, the AskShare activity starts (Social sharing options).
  * ->By clicking on the "SEE MAP" button, the ActivityMap activity starts (Arc GIS SDK to show results).
  *
- * *** Assignment 2 Functionalities
- * The track of the user and the collected treasures are uploaded to two differents ArcGIS features using URLs.
+ * *** Assignment 2 Functionalities ***
+ * The track of the user and the collected treasures are uploaded to two different ArcGIS features using URLs.
  * The score can be shared by leaving the app (android back arrow of the device) on other apps via the "AskShare" Activity.
  * The user can see the track and found treasures on the ActivityMap by clicking on the "SAVE TRACK AND SEE MAP" button.
  * ->The track ID  change each time a treasure is found.
@@ -134,7 +135,6 @@ public class TreasureHunt extends AppCompatActivity
         // Track feature.
         trackFeature = new ServiceFeatureTable("https://services1.arcgis.com/i9MtZ1vtgD3gTnyL/arcgis/rest/services/track/FeatureServer/0");
         trackFeature.loadAsync();
-
         // Treasure feature.
         treasureFeature = new ServiceFeatureTable("https://services1.arcgis.com/i9MtZ1vtgD3gTnyL/arcgis/rest/services/treassure/FeatureServer/0");
         treasureFeature.loadAsync();
@@ -224,6 +224,7 @@ public class TreasureHunt extends AppCompatActivity
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
         // Switch to Askshare Activity using Intent.
         Intent Intent = new Intent(this, AskShare.class);
         Intent.putExtra("userId", userId); // To share user ID.
@@ -455,6 +456,7 @@ public class TreasureHunt extends AppCompatActivity
         attributes.put("user_id", userId);
         attributes.put("track_id", trackId);
         attributes.put("timestamp", currentMoment);
+
         // Creates a new feature using default attributes and point.
         Feature feature = featureTable.createFeature(attributes, polyline);
 

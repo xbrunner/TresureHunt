@@ -131,9 +131,11 @@ public class ActivitiyMap extends AppCompatActivity {
                 }
                 // Get the point that was clicked and convert it to a point in map coordinates.
                 final Point clickPoint = mMapView.screenToLocation(new android.graphics.Point(Math.round(e.getX()), Math.round(e.getY())));
+
                 // Create a selection tolerance.
                 int tolerance = 10;
                 double mapTolerance = tolerance * mMapView.getUnitsPerDensityIndependentPixel();
+
                 // Use tolerance to create an envelope to query.
                 Envelope envelope = new Envelope(clickPoint.getX() - mapTolerance, clickPoint.getY() - mapTolerance,clickPoint.getX() + mapTolerance, clickPoint.getY() + mapTolerance, map.getSpatialReference());
 
@@ -143,6 +145,7 @@ public class ActivitiyMap extends AppCompatActivity {
                 // Request all available attribute fields.
                 QueryParameters queryCurrentUser = new QueryParameters();
                 queryCurrentUser.setGeometry(envelope);
+
                 // make search case insensitive
                 if (selectedId >= 20 && selectedId <= 35) {
                 queryCurrentUser.setWhereClause("user_id =" + selectedId);
@@ -159,8 +162,10 @@ public class ActivitiyMap extends AppCompatActivity {
                         try {
                             //Call get on the future to get the result.
                             FeatureQueryResult resultTreasure = futureTreasure.get();
+
                             // Create an Iterator.
                             Iterator<Feature> iteratorTreasure = resultTreasure.iterator();
+
                             // Create a TextView to display field values.
                             TextView calloutContent = new TextView(getApplicationContext());
                             calloutContent.setTextColor(Color.BLACK);
@@ -169,11 +174,13 @@ public class ActivitiyMap extends AppCompatActivity {
                             calloutContent.setScrollBarStyle(View.SCROLLBARS_INSIDE_INSET);
                             calloutContent.setMovementMethod(new ScrollingMovementMethod());
                             calloutContent.setLines(5);
+
                             // Cycle through selections.
                             int counter = 0;
                             Feature feature;
                             while (iteratorTreasure.hasNext()) {
                                 feature = iteratorTreasure.next();
+
                                 // Create a Map of all available attributes as name value pairs.
                                 Map<String, Object> attr = feature.getAttributes();
                                 Set<String> keys = attr.keySet();
@@ -188,6 +195,7 @@ public class ActivitiyMap extends AppCompatActivity {
                                     calloutContent.append(key + " | " + value + "\n");
                                 }
                                 counter++;
+
                                 // Center the mapview on selected feature.
                                 Envelope envelope = feature.getGeometry().getExtent();
                                 // show CallOut
@@ -208,8 +216,10 @@ public class ActivitiyMap extends AppCompatActivity {
                         try {
                             //Call get on the future to get the result.
                             FeatureQueryResult resultTrack = futureTrack.get();
+
                             // Create an Iterator.
                             Iterator<Feature> iteratorTrack = resultTrack.iterator();
+
                             // Create a TextView to display field values.
                             TextView calloutContent = new TextView(getApplicationContext());
                             calloutContent.setTextColor(Color.BLACK);
@@ -218,6 +228,7 @@ public class ActivitiyMap extends AppCompatActivity {
                             calloutContent.setScrollBarStyle(View.SCROLLBARS_INSIDE_INSET);
                             calloutContent.setMovementMethod(new ScrollingMovementMethod());
                             calloutContent.setLines(5);
+
                             // Cycle through selections.
                             int counter = 0;
                             Feature feature;
@@ -258,6 +269,7 @@ public class ActivitiyMap extends AppCompatActivity {
         GraphicsOverlay overlay = new GraphicsOverlay();
         mMapView.getGraphicsOverlays().add(overlay);
         mMapView.setMap(map);
+
         // get the callout that shows attributes
         mCallout = mMapView.getCallout();
     }
@@ -269,6 +281,7 @@ public class ActivitiyMap extends AppCompatActivity {
         // Clear any previous selections.
         mFeatureLayer.clearSelection();
         mFeatureLayer.resetRenderer();
+
         // Create objects required to do a selection with a query.
         QueryParameters query = new QueryParameters();
         // Make search case insensitive.
@@ -282,6 +295,7 @@ public class ActivitiyMap extends AppCompatActivity {
         }
         // Call select features.
         final ListenableFuture<FeatureQueryResult> future = mServiceFeatureTable.queryFeaturesAsync(query);
+
         // Add done loading listener to fire when the selection returns.
         future.addDoneListener(() -> {
             try {
